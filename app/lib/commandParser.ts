@@ -4,14 +4,25 @@ export function clampToZero(value: number): number {
   return Math.max(value, 0);
 }
 
-function parseCharacterTarget(command: string, total: number): number | null {
-  const match = command.match(/(?:character|char)\s*(\d+)/i);
-  if (!match) return null;
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
-  const index = Number(match[1]) - 1;
-  if (Number.isNaN(index) || index < 0 || index >= total) return null;
+function parseCharacterTarget(command: string, characterNames: string[]): number | null {
+  const numberedMatch = command.match(/(?:character|char)\s*(\d+)/i);
+  if (numberedMatch) {
+    const index = Number(numberedMatch[1]) - 1;
+    if (!Number.isNaN(index) && index >= 0 && index < characterNames.length) return index;
+  }
 
-  return index;
+  for (let index = 0; index < characterNames.length; index += 1) {
+    const name = characterNames[index].trim();
+    if (!name) continue;
+    const pattern = new RegExp(`\\b${escapeRegExp(name)}\\b`, "i");
+    if (pattern.test(command)) return index;
+  }
+
+  return null;
 }
 
 function findSignedValue(command: string, patterns: { regex: RegExp; sign: 1 | -1 }[]): number {
@@ -25,11 +36,15 @@ function findSignedValue(command: string, patterns: { regex: RegExp; sign: 1 | -
 function parseHealthDelta(command: string): number {
   return findSignedValue(command, [
     {
-      regex: /(?:took|takes|lost|lose)\s*(?:damage\s*(?:of\s*)?)?(\d+)\s*(?:health\s*points?|hp|health|damage\s*points?|damage)?/i,
+      regex: /(?:took|takes|lost|lose)\s*(?:damage\s*(?:of\s*)?)?(\d+)\s*(?:health\s*points?|hp|health|points\s*of\s*damage|damage\s*points?|damage)?/i,
       sign: -1
     },
     {
       regex: /(?:damage(?:d)?\s*(?:of\s*)?)(\d+)\s*(?:health\s*points?|hp|health|damage\s*points?)?/i,
+      sign: -1
+    },
+    {
+      regex: /(\d+)\s*(?:points?\s*of\s*damage)/i,
       sign: -1
     },
     {
@@ -65,9 +80,9 @@ function parseActionsDelta(command: string): number {
   ]);
 }
 
-export function parseCommand(command: string, totalCharacters: number): ParsedCommand {
+export function parseCommand(command: string, characterNames: string[]): ParsedCommand {
   return {
-    targetIndex: parseCharacterTarget(command, totalCharacters),
+    targetIndex: parseCharacterTarget(command, characterNames),
     healthDelta: parseHealthDelta(command),
     movementDelta: parseMovementDelta(command),
     actionsDelta: parseActionsDelta(command)

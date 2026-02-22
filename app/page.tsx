@@ -12,7 +12,7 @@ const defaultCharacters: Character[] = [
 ];
 
 const commandHelp =
-  "Try: 'character 1 used 2 movement points and took damage of 2 health points and used 1 action point'.";
+  "Try: 'character 1 used 2 movement points and took damage of 2 health points and used 1 action point', or 'Aria took 2 points of damage'.";
 
 export default function Home() {
   const [characters, setCharacters] = useState<Character[]>(defaultCharacters);
@@ -44,10 +44,10 @@ export default function Home() {
       return;
     }
 
-    const parsed = parseCommand(trimmed, characters.length);
+    const parsed = parseCommand(trimmed, characters.map((item) => item.name));
 
     if (parsed.targetIndex === null) {
-      setStatus("Could not find character target. Use 'character 1', 'character 2', etc.");
+      setStatus("Could not find character target. Use 'character 1' or type the character name in the command.");
       return;
     }
 
